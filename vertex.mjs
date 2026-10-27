@@ -57,10 +57,18 @@ export async function bildErzeugen({ prompt, vorlagen, modell, ort = 'global', f
     contents: [{ role: 'user', parts: teile }],
     generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: format } },
   });
-  const teil = (j.candidates?.[0]?.content?.parts ?? []).find((p) => p.inlineData?.data);
-  if (!teil) throw new Error('kein Bild in der Antwort (evtl. Inhaltsfilter)');
+  const antwort = j.candidates?.[0]?.content?.parts ?? [];
+  const teil = teiler(antwort);
+  if (!teil) {
+    // Grund mitgeben (Blockade, Abbruchgrund, Text des Modells), damit Ablehnungen nachvollziehbar sind
+    const grund = [j.promptFeedback?.blockReason && `block=${j.promptFeedback.blockReason}`, j.candidates?.[0]?.finishReason && `finish=${j.candidates[0].finishReason}`,
+      antwort.map((p) => p.text ?? '').join(' ').trim().slice(0, 160)].filter(Boolean).join(' · ');
+    throw new Error(`kein Bild in der Antwort${grund ? ` (${grund})` : ''}`);
+  }
   return Buffer.from(teil.inlineData.data, 'base64');
 }
+
+const teiler = (teile) => teile.find((p) => p.inlineData?.data);
 
 /** Bildprüfung mit einem günstigen Modell: gleiche Figur? Schrift? abgeschnitten? oberes Drittel frei? Szene passt? */
 export async function bildPruefen({ bild, vorlage, szene, modell, ort = 'global', modus = 'szene', einfarbig = false }) {
