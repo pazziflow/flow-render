@@ -5,6 +5,7 @@ import { writeFile, readFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { textflaechenBauen } from './textflaeche.mjs';
+import { skizzeTextBauen } from './skizze.mjs';
 
 const ausfuehren = promisify(execFile);
 
@@ -31,11 +32,16 @@ export async function reelBauen(browser, a) {
     if (a.musik_url) await laden(a.musik_url, join(dir, 'musik'));
 
     // Szene (text1) steht von Anfang an; ab wechsel_s kommt die Pointe (text2) darunter dazu
-    const t2 = (a.text2 ?? '').trim();
+    const skizze = a.look === 'skizze';
+    const t2 = skizze ? '' : (a.text2 ?? '').trim(); // Skizzenbuch: ganzer Text von Anfang an
     const wechsel = t2 ? Math.min(Math.max(a.wechsel_s || 3, 1), L - 1) : L;
     // Textaufbau wie Pupazzomio: Größe/Lage aus dem vollen Text, Szene allein an derselben Stelle
     const schrift = a.schrift ?? { familie: 'Poppins', kurz: 700, lang: 500 };
-    const tf = await textflaechenBauen(browser, { text1: a.text1, text2: t2, stil: a.stil, schrift, handle: a.handle ?? null, marke: a.marke, bild: join(dir, 'bild.jpg') }, dir);
+    // Skizzenbuch: Figur gespiegelt → steht auf der anderen Seite, Text wandert mit
+    const seite = a.spiegeln && a.seite !== 'unten' ? (a.seite === 'rechts' ? 'links' : 'rechts') : a.seite;
+    const tf = skizze
+      ? await skizzeTextBauen(browser, { text1: a.text1, text2: a.text2, seite, handle: a.handle ?? null, marke: a.marke }, dir)
+      : await textflaechenBauen(browser, { text1: a.text1, text2: t2, stil: a.stil, schrift, handle: a.handle ?? null, marke: a.marke, bild: join(dir, 'bild.jpg') }, dir);
     // Platz für den Text: Bild unten verankert verkleinern, oben mit der Hintergrundfarbe des Bildes auffüllen
     const hex = (rgb) => { const m = String(rgb ?? '').match(/\d+/g); return m ? '0x' + m.slice(0, 3).map((x) => Number(x).toString(16).padStart(2, '0')).join('') : '0xEDE8DF'; };
     const sk = Math.min(1, Math.max(0.5, Number(tf.skala ?? 1)));

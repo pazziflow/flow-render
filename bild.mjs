@@ -43,7 +43,7 @@ export async function bildBauen(a) {
     await run('ffmpeg', ['-y', '-loglevel', 'error', '-i', gross, '-vf', 'scale=360:-2', '-c:v', 'libwebp', '-quality', '80', klein]);
     await hochladen(a.upload.bild.signedUrl, gross, 'image/webp');
     await hochladen(a.upload.klein.signedUrl, klein, 'image/webp');
-    return { ok: true, bild: a.upload.bild.pfad, klein: a.upload.klein.pfad, protokoll };
+    return { ok: true, bild: a.upload.bild.pfad, klein: a.upload.klein.pfad, protokoll, ...(a.seite ? { seite: a.seite } : {}) };
   } finally {
     await rm(ordner, { recursive: true, force: true });
   }
