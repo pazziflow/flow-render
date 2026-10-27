@@ -49,7 +49,8 @@ export async function skizzeTextBauen(browser, a, dir) {
     const F = FLAECHE[seite];
     const art = [...ganz].reduce((x, c) => (x + c.charCodeAt(0)) % 3, 0);
 
-    const html = `<div class="f" id="f" style="left:${F.x * B}px;top:${F.y * H}px;width:${F.b * B}px;text-align:${F.ausrichtung};transform:rotate(${F.kipp}deg);transform-origin:top left">`
+    const pos = a.text_pos ?? {}; // vom Nutzer verschoben/vergrößert
+    const html = `<div class="f" id="f" style="left:${F.x * B}px;top:${F.y * H}px;width:${F.b * B}px;text-align:${F.ausrichtung};transform:translate(${(Number(pos.dx ?? 0) / 100) * B}px, ${(Number(pos.dy ?? 0) / 100) * H}px) rotate(${F.kipp}deg) scale(${Number(pos.s ?? 1)});transform-origin:top left">`
       + (einstieg ? `<span class="k">${esc(einstieg)}</span>` : '') + `<span class="r">${esc(rest)}</span></div>`;
     // Größe: von groß nach klein, bis der Text in die Fläche passt
     const px = await page.evaluate((html, maxH, start) => {

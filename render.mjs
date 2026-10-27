@@ -40,8 +40,8 @@ export async function reelBauen(browser, a) {
     // Skizzenbuch: Figur gespiegelt → steht auf der anderen Seite, Text wandert mit
     const seite = a.spiegeln && a.seite !== 'unten' ? (a.seite === 'rechts' ? 'links' : 'rechts') : a.seite;
     const tf = skizze
-      ? await skizzeTextBauen(browser, { text1: a.text1, text2: a.text2, seite, handle: a.handle ?? null, marke: a.marke }, dir)
-      : await textflaechenBauen(browser, { text1: a.text1, text2: t2, stil: a.stil, schrift, handle: a.handle ?? null, marke: a.marke, bild: join(dir, 'bild.jpg') }, dir);
+      ? await skizzeTextBauen(browser, { text1: a.text1, text2: a.text2, seite, handle: a.handle ?? null, marke: a.marke, text_pos: a.text_pos }, dir)
+      : await textflaechenBauen(browser, { text1: a.text1, text2: t2, stil: a.stil, schrift, handle: a.handle ?? null, marke: a.marke, bild: join(dir, 'bild.jpg'), text_pos: a.text_pos }, dir);
     // Platz für den Text: Bild unten verankert verkleinern, oben mit der Hintergrundfarbe des Bildes auffüllen
     const hex = (rgb) => { const m = String(rgb ?? '').match(/\d+/g); return m ? '0x' + m.slice(0, 3).map((x) => Number(x).toString(16).padStart(2, '0')).join('') : '0xEDE8DF'; };
     const sk = Math.min(1, Math.max(0.5, Number(tf.skala ?? 1)));
