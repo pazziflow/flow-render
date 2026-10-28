@@ -86,7 +86,7 @@ export async function batchHolen(a) {
         const r = await fetch(ziel.signedUrl, { method: 'PUT', headers: { 'Content-Type': 'image/webp', 'x-upsert': 'true' }, body: await readFile(datei) });
         if (!r.ok) throw new Error(`Upload ${r.status}`);
       }
-      ergebnisse.push({ id: e.id, ok: true, bild: e.upload.bild.pfad, klein: e.upload.klein.pfad, protokoll });
+      ergebnisse.push({ id: e.id, ok: true, bild: e.upload.bild.pfad, klein: e.upload.klein.pfad, protokoll, tags: p.tags ?? null });
     } finally {
       await rm(ordner, { recursive: true, force: true });
     }

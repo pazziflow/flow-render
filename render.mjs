@@ -28,7 +28,13 @@ export async function reelBauen(browser, a) {
     const frames = Math.round(L * fps);
     const zmax = R.zoom_max;
 
-    await laden(a.bild_url, join(dir, 'bild.jpg'));
+    // Premium: Video statt Bild (Admin lädt Videos mit Schlagworten hoch). Erstes Bild dient für Textfläche und Farbe.
+    const istVideo = !!a.video_url;
+    if (istVideo) {
+      await laden(a.video_url, join(dir, 'video.mp4'));
+      await ausfuehren('ffmpeg', ['-y', '-loglevel', 'error', '-i', join(dir, 'video.mp4'), '-frames:v', '1', join(dir, 'bild.jpg')]);
+    } else await laden(a.bild_url, join(dir, 'bild.jpg'));
+    const k = istVideo ? 1 : 2; // Bilder werden für den Zoom doppelt groß verarbeitet, Videos in Endgröße
     if (a.musik_url) await laden(a.musik_url, join(dir, 'musik'));
 
     // Szene (text1) steht von Anfang an; ab wechsel_s kommt die Pointe (text2) darunter dazu
@@ -45,13 +51,13 @@ export async function reelBauen(browser, a) {
     // Platz für den Text: Bild unten verankert verkleinern, oben mit der Hintergrundfarbe des Bildes auffüllen
     const hex = (rgb) => { const m = String(rgb ?? '').match(/\d+/g); return m ? '0x' + m.slice(0, 3).map((x) => Number(x).toString(16).padStart(2, '0')).join('') : '0xEDE8DF'; };
     const sk = Math.min(1, Math.max(0.5, Number(tf.skala ?? 1)));
-    const schieben = sk < 0.999 ? `scale=${Math.round(B * 2 * sk / 2) * 2}:${Math.round(H * 2 * sk / 2) * 2},pad=${B * 2}:${H * 2}:(ow-iw)/2:oh-ih:color=${hex(tf.farbe)},` : '';
+    const schieben = sk < 0.999 ? `scale=${Math.round(B * k * sk / 2) * 2}:${Math.round(H * k * sk / 2) * 2},pad=${B * k}:${H * k}:(ow-iw)/2:oh-ih:color=${hex(tf.farbe)},` : '';
     // Breite Bilder (z. B. quadratisches Hauptbild): volle Breite unten, oben Hintergrundfarbe – statt hochzuzoomen
     const einpassen = tf.modus === 'unten'
-      ? `scale=${B * 2}:-2,pad=${B * 2}:${H * 2}:0:oh-ih:color=${hex(tf.farbe)},`
-      : `scale=${B * 2}:${H * 2}:force_original_aspect_ratio=increase,crop=${B * 2}:${H * 2},`;
+      ? `scale=${B * k}:-2,pad=${B * k}:${H * k}:0:oh-ih:color=${hex(tf.farbe)},`
+      : `scale=${B * k}:${H * k}:force_original_aspect_ratio=increase,crop=${B * k}:${H * k},`;
 
-    const args = ['-y', '-loglevel', 'error', '-loop', '1', '-framerate', String(fps), '-i', join(dir, 'bild.jpg'), '-loop', '1', '-i', join(dir, 't1.png')];
+    const args = ['-y', '-loglevel', 'error', ...(istVideo ? ['-stream_loop', '-1', '-i', join(dir, 'video.mp4')] : ['-loop', '1', '-framerate', String(fps), '-i', join(dir, 'bild.jpg')]), '-loop', '1', '-i', join(dir, 't1.png')];
     if (t2) args.push('-loop', '1', '-i', join(dir, 't2.png'));
     const audioIdx = t2 ? 3 : 2;
     if (a.musik_url) args.push('-ss', String(a.musik_start || 0), '-t', String(L), '-i', join(dir, 'musik'));
@@ -63,7 +69,7 @@ export async function reelBauen(browser, a) {
     const my = Number(R.zoom_mitte_y ?? 0.5).toFixed(3); // Zoom-Mitte auf Höhe der Figur
     const z = a.zoom_raus ? `${zmax.toFixed(4)}-${(zmax - 1).toFixed(4)}*${welle}` : `1+${(zmax - 1).toFixed(4)}*${welle}`;
     let f = `[0:v]${a.spiegeln ? 'hflip,' : ''}${einpassen}${schieben}` +
-      `zoompan=z='${z}':x='iw/2-(iw/zoom/2)':y='${my}*ih-(ih/zoom*${my})':d=1:s=${B}x${H}:fps=${fps},setsar=1[bg];` +
+      (istVideo ? `fps=${fps},setsar=1[bg];` : `zoompan=z='${z}':x='iw/2-(iw/zoom/2)':y='${my}*ih-(ih/zoom*${my})':d=1:s=${B}x${H}:fps=${fps},setsar=1[bg];`) +
       // Ohne Pointe bleibt der Text bis zum letzten Bild (enable mit t < Länge schaltete das letzte Bild ab)
       `[bg][1:v]overlay=0:0${t2 ? `:enable='lt(t,${wechsel})'` : ''}[v1]`;
     if (t2) f += `;[v1][2:v]overlay=0:0:enable='gte(t,${wechsel})'[v]`;

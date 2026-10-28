@@ -7,12 +7,16 @@ import { zugang } from './vertex.mjs';
 export async function kiAusfuehren(a) {
   if (process.env.FLOW_KI_WEG === 'vertex') {
     try {
-      return await kiPerVertex(a);
+      const e = await kiPerVertex(a);
+      return { ...e, nutzung: { ...e.nutzung, weg: 'vertex' } };
     } catch (e) {
+      // Abo nur als Notlösung, wenn der Auftrag es erlaubt (Regelwerk ki.abo_notfall)
+      if (a.abo_notfall === false) throw e;
       console.log(`KI über Vertex fehlgeschlagen, Abo springt ein: ${String(e?.message ?? e).slice(0, 200)}`);
     }
   }
-  return kiPerAbo(a);
+  const e = await kiPerAbo(a);
+  return { ...e, nutzung: { ...e.nutzung, weg: 'abo' } };
 }
 
 const schlaf = (ms) => new Promise((r) => setTimeout(r, ms));

@@ -20,7 +20,7 @@ export async function bildBauen(a) {
   // Prüf-Test: Bild ohne Vorlage erzeugen, aber gegen die echte Figur prüfen (muss abgelehnt werden)
   const pruefVorlage = a.pruef_vorlage_url ? await bildTeil(a.pruef_vorlage_url) : vorlagen[0];
   const protokoll = [];
-  let roh = null;
+  let roh = null, tags = null;
   for (let v = 1; v <= (a.versuche ?? 2); v++) {
     let kandidat;
     try { kandidat = await bildErzeugen({ prompt: a.prompt, vorlagen, modell: a.modell, ort: a.ort, format: a.format ?? '9:16' }); }
@@ -30,7 +30,7 @@ export async function bildBauen(a) {
       : await bildPruefen({ bild: kandidat, vorlage: pruefVorlage, szene: a.szene_text, modell: a.pruef_modell, ort: a.ort, modus: a.pruef_modus ?? 'szene', einfarbig: !!a.einfarbig })
         .catch((e) => ({ ok: false, grund: `Prüfung fehlgeschlagen: ${String(e?.message ?? e).slice(0, 150)}` }));
     protokoll.push({ versuch: v, erzeugt: true, ok: !!p.ok, grund: p.grund ?? '' });
-    if (p.ok) { roh = kandidat; break; }
+    if (p.ok) { roh = kandidat; tags = p.tags ?? null; break; }
   }
   if (!roh) return { ok: false, protokoll };
 
@@ -43,7 +43,7 @@ export async function bildBauen(a) {
     await run('ffmpeg', ['-y', '-loglevel', 'error', '-i', gross, '-vf', 'scale=360:-2', '-c:v', 'libwebp', '-quality', '80', klein]);
     await hochladen(a.upload.bild.signedUrl, gross, 'image/webp');
     await hochladen(a.upload.klein.signedUrl, klein, 'image/webp');
-    return { ok: true, bild: a.upload.bild.pfad, klein: a.upload.klein.pfad, protokoll, ...(a.seite ? { seite: a.seite } : {}) };
+    return { ok: true, bild: a.upload.bild.pfad, klein: a.upload.klein.pfad, protokoll, tags, ...(a.seite ? { seite: a.seite } : {}) };
   } finally {
     await rm(ordner, { recursive: true, force: true });
   }

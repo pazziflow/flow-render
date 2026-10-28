@@ -71,7 +71,39 @@ export async function bildErzeugen({ prompt, vorlagen, modell, ort = 'global', f
 const teiler = (teile) => teile.find((p) => p.inlineData?.data);
 
 /** Bildprüfung mit einem günstigen Modell: gleiche Figur? Schrift? abgeschnitten? oberes Drittel frei? Szene passt? */
+// Schlagworte je Bild (für die günstige Wiederverwendung): feste Listen, damit Bilder und Wünsche vergleichbar bleiben
+export const TAG_LISTEN = {
+  ort: ['büro', 'zuhause', 'küche', 'schlafzimmer', 'bad', 'café', 'restaurant', 'supermarkt', 'schule', 'straße', 'auto', 'natur', 'strand', 'fitness', 'neutral'],
+  stimmung: ['müde', 'genervt', 'gestresst', 'fröhlich', 'entspannt', 'traurig', 'stolz', 'verliebt', 'motiviert', 'gelangweilt', 'überrascht', 'verwirrt', 'erschöpft', 'skeptisch', 'hungrig', 'verlegen', 'wütend', 'frech'],
+  blick: ['zum_betrachter', 'zur_seite', 'nach_unten', 'nach_oben', 'augen_zu'],
+  pose: ['stehen', 'sitzen', 'liegen', 'gehen', 'rennen', 'arme_verschraenkt', 'haende_hoch', 'zeigen', 'strecken', 'tanzen'],
+  tageszeit: ['morgen', 'tag', 'abend', 'nacht'],
+  ausschnitt: ['ganz', 'halb', 'nah'],
+};
+const TAG_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    ort: { type: 'STRING', enum: TAG_LISTEN.ort }, stimmung: { type: 'STRING', enum: TAG_LISTEN.stimmung },
+    blick: { type: 'STRING', enum: TAG_LISTEN.blick }, pose: { type: 'STRING', enum: TAG_LISTEN.pose },
+    tageszeit: { type: 'STRING', enum: TAG_LISTEN.tageszeit }, ausschnitt: { type: 'STRING', enum: TAG_LISTEN.ausschnitt },
+    gegenstaende: { type: 'ARRAY', items: { type: 'STRING' } },
+  },
+  required: ['ort', 'stimmung', 'blick', 'pose', 'tageszeit', 'ausschnitt', 'gegenstaende'],
+};
+const TAG_TEXT = 'Beschreibe außerdem in tags, was auf Bild 2 zu sehen ist: ort (neutral = einfarbiger oder leerer Hintergrund), stimmung der Figur, blick, pose, tageszeit, ausschnitt und gegenstaende (bis zu 4 deutlich sichtbare Dinge als einzelne deutsche Hauptwörter in der Einzahl, klein geschrieben, z. B. tasse, handy, laptop, buch, kissen; leer, wenn keine).';
+
+/** Nur Schlagworte für ein vorhandenes Bild (Nachtragen für ältere Bilder) */
+export async function bildTaggen({ url, modell, ort = 'global' }) {
+  const j = await aufruf(modell, ort, {
+    contents: [{ role: 'user', parts: [await bildTeil(url), { text: TAG_TEXT.replace('außerdem ', '').replaceAll('Bild 2', 'dem Bild') + ' Antworte nur als JSON.' }] }],
+    generationConfig: { responseMimeType: 'application/json', responseSchema: { type: 'OBJECT', properties: { tags: TAG_SCHEMA }, required: ['tags'] } },
+  });
+  const text = (j.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? '').join('');
+  return JSON.parse(text).tags;
+}
+
 export async function bildPruefen({ bild, vorlage, szene, modell, ort = 'global', modus = 'szene', einfarbig = false }) {
+  const mitTags = modus === 'szene' || modus === 'figur';
   const j = await aufruf(modell, ort, {
     contents: [{ role: 'user', parts: [
       { text: 'Bild 1 ist die Vorlage der Figur, Bild 2 das neue Bild.' }, vorlage,
@@ -86,10 +118,11 @@ export async function bildPruefen({ bild, vorlage, szene, modell, ort = 'global'
         // Hauptbild/Figurenblatt: nur Figur und Schrift prüfen (Merkmal und Haltung ändern sich absichtlich)
         ? `Prüfe Bild 2. ok=false, wenn EINES zutrifft: (1) Es ist eine andere Figur als in Bild 1 (andere Tierart/Typ, anderes Gesicht oder ganz andere Farben). Neue Accessoires, Kleidung, Hintergrundfarbe oder Ausdruck sind gewollt und OK. (2) Im Bild steht Schrift, Buchstaben oder Zahlen. (3) Die Figur ist abgeschnitten oder hat grobe Körperfehler. ${szene ? `Hinweis zum Auftrag: ${szene}. ` : ''}Antworte nur als JSON mit ok und einem kurzen grund auf Deutsch.`
         : `Prüfe Bild 2 streng. ok=false, wenn EINES zutrifft: (1) Es ist nicht dieselbe Figur wie in Bild 1 (Tierart/Typ, Farben, Gesicht, Erkennungsmerkmal). (2) Im Bild steht Schrift, Buchstaben oder Zahlen. (3) Die Figur ist abgeschnitten oder hat grobe Körperfehler. (4) Es ist eine völlig andere Situation als: „${szene}“.${einfarbig ? ' (5) Der Hintergrund ist nicht einfarbig und flach (Raum, Wände, Boden, Fenster oder Landschaft sind zu sehen). Einzelne Gegenstände oder ein einzelnes Möbelstück, das zur Handlung gehört (Bett, Sofa, Spiegel, Tisch), sind erlaubt.' : ''} Kleine Abweichungen bei Details, Haltung, Kleidung, Gegenständen, Bildaufteilung oder viel freier Fläche sind OK und kein Grund für ok=false. Schrift heißt lesbare Buchstaben oder Wörter; Striche oder Symbole auf Bildschirmen und Papieren sind OK. Antworte nur als JSON mit ok und einem kurzen grund auf Deutsch.` },
+      ...(mitTags ? [{ text: TAG_TEXT }] : []),
     ] }],
     generationConfig: {
       responseMimeType: 'application/json',
-      responseSchema: { type: 'OBJECT', properties: { ok: { type: 'BOOLEAN' }, grund: { type: 'STRING' } }, required: ['ok', 'grund'] },
+      responseSchema: { type: 'OBJECT', properties: { ok: { type: 'BOOLEAN' }, grund: { type: 'STRING' }, ...(mitTags ? { tags: TAG_SCHEMA } : {}) }, required: ['ok', 'grund'] },
     },
   });
   const text = (j.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? '').join('');

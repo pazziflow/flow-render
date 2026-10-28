@@ -4,6 +4,7 @@ import puppeteer from 'puppeteer-core';
 import { kiAusfuehren } from './ki.mjs';
 import { reelBauen } from './render.mjs';
 import { bildBauen } from './bild.mjs';
+import { bildTaggen } from './vertex.mjs';
 import { batchStarten, batchHolen } from './batch.mjs';
 
 const URL = process.env.FLOW_FABRIK_URL;
@@ -60,6 +61,13 @@ async function arbeiter(nr) {
       } else if (auftrag.art === 'bild') {
         const d = await bildBauen(auftrag.bild);
         await api({ aktion: 'runner_ergebnis', id: auftrag.id, ok: true, daten: d });
+      } else if (auftrag.art === 'taggen') {
+        // Schlagworte für ältere Bilder nachtragen (günstiges Prüfmodell, ein Aufruf je Bild)
+        const tags = {};
+        for (const b of auftrag.taggen.bilder) {
+          try { tags[b.id] = await bildTaggen({ url: b.url, modell: auftrag.taggen.modell, ort: auftrag.taggen.ort }); } catch { /* nächstes Bild */ }
+        }
+        await api({ aktion: 'runner_ergebnis', id: auftrag.id, ok: true, daten: { tags } });
       } else if (auftrag.art === 'bild_batch') {
         const d = auftrag.batch.job ? await batchHolen(auftrag.batch) : await batchStarten(auftrag.batch);
         await api({ aktion: 'runner_ergebnis', id: auftrag.id, ok: true, daten: d });
