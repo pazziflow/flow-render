@@ -90,7 +90,7 @@ const TAG_SCHEMA = {
   },
   required: ['ort', 'stimmung', 'blick', 'pose', 'tageszeit', 'ausschnitt', 'gegenstaende'],
 };
-const TAG_TEXT = 'Beschreibe außerdem in tags, was auf Bild 2 zu sehen ist: ort (neutral = einfarbiger oder leerer Hintergrund), stimmung der Figur, blick, pose, tageszeit, ausschnitt und gegenstaende (bis zu 4 deutlich sichtbare Dinge als einzelne deutsche Hauptwörter in der Einzahl, klein geschrieben, z. B. tasse, handy, laptop, buch, kissen; leer, wenn keine).';
+const TAG_TEXT = 'Beschreibe außerdem in tags, was auf Bild 2 zu sehen ist: ort (neutral = einfarbiger oder leerer Hintergrund), stimmung der Figur, blick, pose, tageszeit, ausschnitt und gegenstaende (bis zu 4 deutlich sichtbare Dinge, keine Kleidung und keine Möbel, als einzelne deutsche Hauptwörter in der Einzahl, klein geschrieben, z. B. tasse, handy, laptop, buch, kissen; leer, wenn keine).';
 
 /** Nur Schlagworte für ein vorhandenes Bild (Nachtragen für ältere Bilder) */
 export async function bildTaggen({ url, modell, ort = 'global' }) {
