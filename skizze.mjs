@@ -32,7 +32,7 @@ export async function skizzeTextBauen(browser, a, dir) {
     await page.setViewport({ width: B, height: H, deviceScaleFactor: 1 });
     await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><link href="${FONT}" rel="stylesheet">
 <style>html,body{margin:0;width:${B}px;height:${H}px;background:transparent;overflow:hidden}
-.f{position:absolute;box-sizing:border-box;font-family:'Gochi Hand',cursive;color:#2B2622;white-space:pre-line;overflow-wrap:normal;word-break:keep-all;hyphens:none}
+.f{position:absolute;box-sizing:border-box;font-family:'Gochi Hand',cursive;color:${/^#[0-9A-Fa-f]{6}$/.test(a.schriftfarbe ?? '') ? a.schriftfarbe : '#2B2622'};white-space:pre-line;overflow-wrap:normal;word-break:keep-all;hyphens:none}
 .k{font-size:1.32em;line-height:1.05;margin-bottom:.35em;display:block}
 .r{line-height:1.18;display:block}
 .d{position:absolute}
