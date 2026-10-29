@@ -9,9 +9,11 @@
 export const B = 1080, H = 1920;
 export const AUFBAU = {
   grenzeWoerter: 18,
-  kurz: { start: 66, min: 40, schritt: 2, breite: 0.74, oben: 0.13, unten: 0.40, zeile: 1.22, maxZeilen: 5 },
-  lang: { start: 50, min: 34, schritt: 2, breite: 0.80, oben: 0.13, unten: 0.44, zeile: 1.32 }, // oben 13 %: Instagram-Leiste + 3:4-Profilraster
+  kurz: { start: 66, min: 40, schritt: 2, breite: 0.74, oben: 0.13, unten: 0.40, untenFigur: 0.46, zeile: 1.22, maxZeilen: 5 },
+  lang: { start: 50, min: 34, schritt: 2, breite: 0.80, oben: 0.13, unten: 0.44, untenFigur: 0.48, zeile: 1.32 }, // oben 13 %: Instagram-Leiste + 3:4-Profilraster
   // Platz über der Figur: Text endet mind. 3 % über dem Kopf; reicht das nicht, wird das Bild kleiner (unten verankert, min. 72 %)
+  // Messbare Figur (einfarbiger Hintergrund): Text sitzt unten auf, kurz über dem Kopf (höchstens bis untenFigur), statt mittig weit oben.
+  // Reicht der Platz nicht, rutscht er nach oben (bis 13 %), wird kleiner und zuletzt das Bild kleiner.
   figur: { abstand: 0.03, minUnten: 0.30, minSkala: 0.72, messBreite: 120 },
   // Branding unter der Figur: @pazziflow und darunter @Account, klein und halbtransparent (wie bei Meme-Accounts)
   handle: { px: 34, y: 0.872, zeile: 1.3, farbe: '#8A735F', deckkraft: 0.55, marke: 'pazziflow' },
@@ -88,7 +90,7 @@ export function textAufbau(text1, text2, schrift, messen, frei = 1) {
   // Unterkante: Standard, aber nicht in die Figur hinein (frei = 1: Bild nicht messbar → Standard)
   const F = AUFBAU.figur;
   const messbar = frei < 1;
-  const unten = messbar ? Math.max(Math.min(A.unten, frei - F.abstand), F.minUnten) : A.unten;
+  const unten = messbar ? Math.max(Math.min(A.untenFigur, frei - F.abstand), F.minUnten) : A.unten;
   const raum = (unten - A.oben) * H;
   let px = A.start, z = bauen(px);
   for (;;) {
@@ -100,7 +102,8 @@ export function textAufbau(text1, text2, schrift, messen, frei = 1) {
     z = bauen(px);
   }
   const hoehe = z.alle.length * px * A.zeile;
-  const top = kurz ? Math.max(A.oben * H, ((A.oben + unten) / 2) * H - hoehe / 2) : A.oben * H;
+  const top = messbar ? Math.max(A.oben * H, unten * H - hoehe)
+    : kurz ? Math.max(A.oben * H, ((A.oben + unten) / 2) * H - hoehe / 2) : A.oben * H;
   // Reicht der Platz trotzdem nicht: Bild unten verankert verkleinern, bis der Kopf unter dem Text liegt
   const textUnten = top + hoehe + F.abstand * H;
   const skala = messbar && textUnten > frei * H ? Math.max(F.minSkala, Math.min(1, (H - textUnten) / (H - frei * H))) : 1;
