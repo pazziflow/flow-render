@@ -103,7 +103,7 @@ export async function bildTaggen({ url, modell, ort = 'global' }) {
 }
 
 export async function bildPruefen({ bild, vorlage, szene, modell, ort = 'global', modus = 'szene', einfarbig = false }) {
-  const mitTags = modus === 'szene' || modus === 'szene_eigen' || modus === 'figur';
+  const mitTags = modus === 'szene' || modus === 'figur';
   const j = await aufruf(modell, ort, {
     contents: [{ role: 'user', parts: [
       { text: 'Bild 1 ist die Vorlage der Figur, Bild 2 das neue Bild.' }, vorlage,
@@ -117,7 +117,7 @@ export async function bildPruefen({ bild, vorlage, szene, modell, ort = 'global'
         : modus === 'figur'
         // Hauptbild/Figurenblatt: nur Figur und Schrift prüfen (Merkmal und Haltung ändern sich absichtlich)
         ? `Prüfe Bild 2. ok=false, wenn EINES zutrifft: (1) Es ist eine andere Figur als in Bild 1 (andere Tierart/Typ, anderes Gesicht oder ganz andere Farben). Neue Accessoires, Kleidung, Hintergrundfarbe oder Ausdruck sind gewollt und OK. (2) Im Bild steht Schrift, Buchstaben oder Zahlen. (3) Die Figur ist abgeschnitten oder hat grobe Körperfehler. ${szene ? `Hinweis zum Auftrag: ${szene}. ` : ''}Antworte nur als JSON mit ok und einem kurzen grund auf Deutsch.`
-        : `Prüfe Bild 2 streng. ok=false, wenn EINES zutrifft: (1) Es ist nicht dieselbe Figur wie in Bild 1 (Tierart/Typ, Farben, Gesicht, Erkennungsmerkmal). (2) Im Bild steht Schrift, Buchstaben oder Zahlen. (3) Die Figur ist abgeschnitten oder hat grobe Körperfehler. (4) Es ist eine völlig andere Situation als: „${szene}“.${einfarbig ? ' (5) Der Hintergrund ist nicht einfarbig und flach (Raum, Wände, Boden, Fenster oder Landschaft sind zu sehen). Einzelne Gegenstände oder ein einzelnes Möbelstück, das zur Handlung gehört (Bett, Sofa, Spiegel, Tisch), sind erlaubt.' : ''}${modus === 'szene_eigen' ? ' (6) Bild 1 ist die vom Nutzer hochgeladene eigene Figur: Die Figur in Bild 2 hat eine deutlich andere Machart oder einen anderen Zustand als in Bild 1 (z. B. sieht sie neuer, sauberer, glatter oder wie neu gezeichnet aus, Material, Muster, Abnutzung oder Eigenheiten fehlen oder sind verändert).' : ''} Kleine Abweichungen bei Details, Haltung, Kleidung, Gegenständen, Bildaufteilung oder viel freier Fläche sind OK und kein Grund für ok=false. Schrift heißt lesbare Buchstaben oder Wörter; Striche oder Symbole auf Bildschirmen und Papieren sind OK. Antworte nur als JSON mit ok und einem kurzen grund auf Deutsch.` },
+        : `Prüfe Bild 2 streng. ok=false, wenn EINES zutrifft: (1) Es ist nicht dieselbe Figur wie in Bild 1 (Tierart/Typ, Farben, Gesicht, Erkennungsmerkmal). (2) Im Bild steht Schrift, Buchstaben oder Zahlen. (3) Die Figur ist abgeschnitten oder hat grobe Körperfehler. (4) Es ist eine völlig andere Situation als: „${szene}“.${einfarbig ? ' (5) Der Hintergrund ist nicht einfarbig und flach (Raum, Wände, Boden, Fenster oder Landschaft sind zu sehen). Einzelne Gegenstände oder ein einzelnes Möbelstück, das zur Handlung gehört (Bett, Sofa, Spiegel, Tisch), sind erlaubt.' : ''} Kleine Abweichungen bei Details, Haltung, Kleidung, Gegenständen, Bildaufteilung oder viel freier Fläche sind OK und kein Grund für ok=false. Schrift heißt lesbare Buchstaben oder Wörter; Striche oder Symbole auf Bildschirmen und Papieren sind OK. Antworte nur als JSON mit ok und einem kurzen grund auf Deutsch.` },
       ...(mitTags ? [{ text: TAG_TEXT }] : []),
     ] }],
     generationConfig: {
